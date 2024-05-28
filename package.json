@@ -1,0 +1,12 @@
+{
+  "name": "earnbot_global",
+  "version": "1.0.0",
+  "description": "EarnBot Global: Specializing in crypto, providing real-time and professional on-chain data and crypto info.",
+  "main": "index.js",
+  "scripts": {
+    "start": "pm2 start index.js",
+    "dev": "nodemon index.js"
+  },
+  "author": "Earnbot_ethan",
+  "license": "ISC"
+}
