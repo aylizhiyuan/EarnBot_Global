@@ -6,6 +6,7 @@
   "scripts": {
     "start": "pm2 start index.js",
     "dev": "nodemon index.js",
+    "lint": "eslint . --ext .js",
     "prepare": "husky"
   },
   "author": "Earnbot_ethan",
@@ -28,6 +29,7 @@
     "@commitlint/cli": "^19.3.0",
     "@commitlint/config-conventional": "^19.2.2",
     "eslint": "^9.3.0",
+    "eslint-plugin-node": "^11.1.0",
     "husky": "^9.0.11",
     "lint-staged": "^15.2.5",
     "prettier": "^3.2.5"
