@@ -144,3 +144,134 @@ process.on('uncaughtException', async (err) => {
   console.log('Caught exception: ' + err)
   await pool.end()
 })
+
+const escapeTelegramMarkdown = (text) => {
+  return text
+    .replace(/\_/g, '\\_')
+    .replace(/\[/g, '\\[')
+    .replace(/\]/g, '\\]')
+    .replace(/\(/g, '\\(')
+    .replace(/\)/g, '\\)')
+    .replace(/\~/g, '\\~')
+    .replace(/\`/g, '\\`')
+    .replace(/\>/g, '\\>')
+    .replace(/\#/g, '\\#')
+    .replace(/\+/g, '\\+')
+    .replace(/\-/g, '\\-')
+    .replace(/\=/g, '\\=')
+    .replace(/\|/g, '\\|')
+    .replace(/\{/g, '\\{')
+    .replace(/\}/g, '\\}')
+    .replace(/\./g, '\\.')
+    .replace(/\!/g, '\\!')
+    .replace(/(?<!\*)\*(?!\*)/g, '')
+    .replace(/\*\*(.*?)\*\*/g, (match, p1) => {
+      if (p1.includes('\\**')) {
+        return `**${p1.replace(/\\(\*\*)/g, '$1')}**`
+      }
+      return match
+    })
+}
+
+const jobKol = new CronJob(
+  '0 5 */2 * * *',
+  async () => {
+    console.log(`=======================cron start${moment()}================`)
+    const client = await pool.connect()
+    const currentDate = moment()
+    const twoHourAgo = moment().subtract(2, 'hours').subtract(5, 'minutes')
+    const query = `SELECT * FROM public.twitter_news WHERE create_date=$1`
+    const pgResult = await client.query(query, [currentDate])
+    const { rows } = pgResult
+    const twList = rows
+      .filter((item) => item.text && item.text.length > 0)
+      .map((item) => item.text)
+      .flat()
+      .filter((item) => moment(item.time).isBefore(currentDate) && moment(item.time).isAfter(twoHourAgo))
+    console.log(`======news list=====`, twList)
+    if (twList.length >= 1) {
+      const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash-latest' })
+      const prompt = `Please generate a English news report on the cryptocurrency market based on the following information, and label it as a cryptocurrency market news report. The report should meet the following requirements:Objective Statement: Only state facts, avoiding subjective analysis or judgment.Information Filtering: Only extract information related to the cryptocurrency market, including project details, coin information, airdrop information, and market predictions. Exclude information unrelated to the cryptocurrency market, exclude sharing and link addresses, and do not include personal life and emotional content of bloggers (directly ignore).Classification and Organization: Classify and organize the blog content. Articles on similar topics should integrate relevant information and be expressed in formal written language, avoiding colloquial expressions.Influencing Factors: Extract and highlight key information that may affect the cryptocurrency market trends, such as policy changes, major events, or market-breaking news.Markdown Format: Use standard markdown format, do not use special characters, ensure appropriate line breaks for content completeness, emphasize key content in bold, remove all link addresses,ensure the information is concise and does not exceed 4096 characters. Information as follows:${JSON.stringify(
+        twList
+      )}`
+      const result = await model.generateContent(prompt)
+      const response = await result.response
+      const text = response.text()
+      bot.sendMessage(-1002151619852, escapeTelegramMarkdown(text), { parse_mode: 'MarkdownV2' })
+    }
+    client.release()
+  }, // onTick
+  null, // onComplete
+  true, // start
+  'system', // timeZone
+  null, // context
+  false // run on init
+)
+
+const jobNews = new CronJob(
+  '0 10 */3 * * *',
+  async () => {
+    console.log(`=======================cron start ${moment()}================`)
+    const client = await pool.connect()
+    const query = `SELECT * FROM public.twitter_kol WHERE create_date=$1`
+    const currentDate = moment()
+    const twoHourAgo = moment().subtract(3, 'hours').subtract(5, 'minutes')
+    const pgResult = await client.query(query, [currentDate])
+    const { rows } = pgResult
+    const twList = rows
+      .filter((item) => item.text && item.text.length > 0)
+      .map((item) => item.text)
+      .flat()
+      .filter((item) => moment(item.time).isBefore(currentDate) && moment(item.time).isAfter(twoHourAgo))
+    console.log(`======KOL list=====`, twList)
+    if (twList.length >= 1) {
+      const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash-latest' })
+      const prompt = `Please generate a English KOL real-time dynamics report based on the following information, and label it as a KOL Real-Time Dynamics Report. The report should meet the following requirements:Objective Statement: Only state facts, avoiding subjective analysis or judgment.Information Filtering: Only extract information related to the cryptocurrency market, including project details, coin information, airdrop information, and market predictions. Exclude information unrelated to the cryptocurrency market, exclude KOL-shared link addresses, and do not include KOL personal life and emotional content (directly ignore).Classification and Organization: Classify and organize the blog content. Articles on similar topics should integrate relevant information and be expressed in formal written language, avoiding colloquial expressions.Influencing Factors: Extract and highlight key information that may affect cryptocurrency market trends, such as policy changes, major events, or market-breaking news.Markdown Format: Use standard markdown format, do not use special characters, ensure appropriate line breaks for content completeness, emphasize key content in bold, remove all link addresses, ensure the information is concise and does not exceed 4096 characters. Information as follows:${JSON.stringify(
+        twList
+      )}`
+      const result = await model.generateContent(prompt)
+      const response = await result.response
+      const text = response.text()
+      bot.sendMessage(-1002151619852, escapeTelegramMarkdown(text), { parse_mode: 'MarkdownV2' })
+    }
+    client.release()
+  }, // onTick
+  null, // onComplete
+  true, // start
+  'system', // timeZone
+  null, // context
+  false // run on init
+)
+
+const jobOfficial = new CronJob(
+  '0 15 */6 * * *',
+  async () => {
+    console.log(`=======================cron start ${moment()}================`)
+    const client = await pool.connect()
+    const query = `SELECT * FROM public.twitter_official WHERE create_date=$1`
+    const currentDate = moment()
+    const twoHourAgo = moment().subtract(6, 'hours').subtract(5, 'minutes')
+    const pgResult = await client.query(query, [currentDate])
+    const { rows } = pgResult
+    const twList = rows
+      .filter((item) => item.text && item.text.length > 0)
+      .map((item) => item.text)
+      .flat()
+      .filter((item) => moment(item.time).isBefore(currentDate) && moment(item.time).isAfter(twoHourAgo))
+    console.log(`======coin list======`, twList)
+    if (twList.length >= 1) {
+      const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash-latest' })
+      const prompt = `Please generate a English on-chain official news report based on the following information, and label it as an On-Chain Official News Report. The report should meet the following requirements:Objective Statement: Only state facts, avoiding subjective analysis or judgment.Information Filtering: Only extract information related to the cryptocurrency market, including project details, coin information, airdrop information, and market predictions. Exclude information unrelated to the cryptocurrency market, exclude shared link addresses, and do not include personal life and emotional content of the bloggers (directly ignore).Classification and Organization: Classify and organize the blog content. Articles on similar topics should integrate relevant information and be expressed in formal written language, avoiding colloquial expressions.Influencing Factors: Extract and highlight key information that may affect cryptocurrency market trends, such as policy changes, major events, or market-breaking news.Markdown Format: Use standard markdown format, do not use special characters, ensure appropriate line breaks for content completeness, emphasize key content in bold, remove all link addresses,and ensure the information is concise and does not exceed 4096 characters. Information as follows:${JSON.stringify(twList)}`
+      const result = await model.generateContent(prompt)
+      const response = await result.response
+      const text = response.text()
+      bot.sendMessage(-1002151619852, escapeTelegramMarkdown(text), { parse_mode: 'MarkdownV2' })
+    }
+    client.release()
+  }, // onTick
+  null, // onComplete
+  true, // start
+  'system', // timeZone
+  null, // context
+  false // run on init
+)
