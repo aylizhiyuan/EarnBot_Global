@@ -43,7 +43,7 @@ app.get('/follow', async (req, res) => {
     const checkTaskQuery = `SELECT * FROM twitter_task WHERE name=$1`
     const checkTaskResult = await client.query(checkTaskQuery, ['follow_twitter'])
     if (checkTaskResult.rows.length === 0) {
-      throw new Error('任务不存在')
+      throw new Error('task not found')
     }
     const task = checkTaskResult.rows[0]
     // 3. check user task
@@ -51,7 +51,7 @@ app.get('/follow', async (req, res) => {
       const checkUserTaskQuery = `SELECT * FROM twitter_users_task WHERE user_id=$1 AND task_id=$2`
       const checkUserTaskResult = await client.query(checkUserTaskQuery, [userId, task.id])
       if (checkUserTaskResult.rows.length > 0) {
-        throw new Error('任务已完成,无法重复完成')
+        throw new Error('task already done')
       }
     }
     // 4. update user points
